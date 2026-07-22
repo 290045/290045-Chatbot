@@ -15,7 +15,6 @@
         .input-area { display: flex; padding: 12px; background: #151515; gap: 10px; border-top: 1px solid #2a2a2a; }
         input { flex: 1; padding: 12px; border-radius: 6px; border: 1px solid #444; background: #222; color: white; outline: none; }
         button { padding: 12px 20px; background: #ff4b4b; border: none; color: white; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        button:hover { background: #e04343; }
     </style>
 </head>
 <body>
@@ -23,7 +22,7 @@
 <div class="chat-container">
     <div class="chat-header">🤖 290045's AI Chatbot</div>
     <div id="chat-box" class="chat-box">
-        <div class="msg bot-msg">Hey! I am running on a secure network proxy. Ask me anything!</div>
+        <div class="msg bot-msg">Hey there! Connected safely over Cloudflare. Ask me anything!</div>
     </div>
     <div class="input-area">
         <input type="text" id="user-input" placeholder="Say hello..." onkeypress="if(event.key === 'Enter') sendMessage()">
@@ -32,6 +31,9 @@
 </div>
 
 <script>
+// ⚠️ PASTE YOUR LIVE CLOUDFLARE WORKER LINK IN THE QUOTES BELOW ⚠️
+const WORKER_URL = "https://290045-chatbot.290045.workers.dev"; 
+
 const chatBox = document.getElementById("chat-box");
 const userInput = document.getElementById("user-input");
 
@@ -39,47 +41,28 @@ async function sendMessage() {
     const text = userInput.value.trim();
     if (!text) return;
 
-    // Render User message
+    // 1. Render User message bubble
     appendMessage(text, "user-msg");
     userInput.value = "";
 
-    // Show temporary typing status
+    // 2. Render temporary thinking status
     const typingDiv = appendMessage("Thinking...", "bot-msg");
 
     try {
-        // Send request using a secure CORS proxy router that strips out blocklists
-        const proxyUrl = "https://corsproxy.io?";
-        const targetUrl = "https://duckduckgo.com";
-        
-        // Pass payload through standard query structures
-        const response = await fetch(proxyUrl + encodeURIComponent(targetUrl), {
+        // 3. Connect to your secure Cloudflare Worker server pipeline
+        const response = await fetch(WORKER_URL, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            body: new URLSearchParams({
-                "q": `Give a direct concise response as an AI chatbot to this question: ${text}`,
-                "b": "Search"
-            })
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: text })
         });
 
-        const rawHtml = await response.text();
+        const data = await response.json();
         
-        // Extract the best text summary from DuckDuckGo's result node
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(rawHtml, 'text/html');
-        const snippets = doc.querySelectorAll('.result__snippet');
+        // 4. Update thinking status with the true AI reply
+        typingDiv.innerText = data.reply || "Error reading model data pipeline.";
         
-        let aiText = "";
-        if(snippets.length > 0) {
-            aiText = snippets[0].innerText;
-        } else {
-            aiText = "Network traffic clear, but couldn't parse text node. Try phrasing your prompt differently.";
-        }
-
-        typingDiv.innerText = aiText;
     } catch (error) {
-        typingDiv.innerText = "Connection failed. The network firewall is aggressively blocking proxy scripts.";
+        typingDiv.innerText = "Connection failed. Check your Cloudflare Worker app URL configuration.";
         console.error(error);
     }
 }
